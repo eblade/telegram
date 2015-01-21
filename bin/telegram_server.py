@@ -62,6 +62,7 @@ def _auth(auth_module, username, password):
     else:
         abort(401, u'Authentication failed: Wrong username or password.')
 
+
 @telegram.get('/new')
 def new():
     username = sessions.validate(request.cookies['auth-token'])
@@ -75,6 +76,7 @@ def new():
     else:
         headers, body = next_message
         return HTTPResponse(body, status=200, headers=headers)
+
 
 @telegram.route('/socket')
 def socket():
@@ -107,7 +109,7 @@ def socket():
                 while True:
                     next_message = post_office.fetch(username)
                     if next_message is None:
-                        wsock.send('{"status": 404}')
+                        wsock.send('{"status": 204}')
                         break
                     else:
                         headers, body = next_message
@@ -144,18 +146,22 @@ def proxy():
     post_office.post_local(headers, request.body)
     return HTTPResponse(status=201)
 
+
 @telegram.post('/send')
 def send():
     post_office.post(request.headers, request.body)
     return HTTPResponse(status=201)
 
+
 @telegram.get('/key')
 def key():
     pass
 
+
 @telegram.get('/key/<user>')
 def key_for_user(user):
     pass
+
 
 @telegram.get('/web')
 def web():
@@ -165,6 +171,7 @@ def web():
 
     return static_file('telegram.html', './html')
 
+
 @telegram.get('/login')
 def login():
     username = sessions.validate(request.cookies.get('auth-token'))
@@ -172,6 +179,7 @@ def login():
         redirect('/web')
 
     return static_file('login.html', './html')
+
 
 @telegram.post('/login')
 def login():
@@ -181,21 +189,31 @@ def login():
         'Location': '/web',
     })
 
+@telegram.get('/js/<path:path>')
+def js(path):
+    return static_file(path, './html/js')
+
+
+@telegram.get('/css/<path:path>')
+def css(path):
+    return static_file(path, './html/css')
+
+
 # TODO Fix this up
-@telegram.post('/web_upload')
-def web_upload():
-    username = sessions.validate(request.cookies.get('auth-token'))
-    if username is not None:
-        abort(401, "Invalid token")
-
-    #category   = request.forms.get('category')
-    upload     = request.files.get('upload')
-    name, ext = os.path.splitext(upload.filename)
-    if ext not in ('.png','.jpg','.jpeg'):
-        return 'File extension not allowed.'
-
-    save_path = '/tmp' #get_save_path_for_category(category)
-    upload.save(save_path) # appends upload.filename automatically
+#@telegram.post('/web_upload')
+#def web_upload():
+#    username = sessions.validate(request.cookies.get('auth-token'))
+#    if username is not None:
+#        abort(401, "Invalid token")
+#
+#    #category   = request.forms.get('category')
+#    upload     = request.files.get('upload')
+#    name, ext = os.path.splitext(upload.filename)
+#    if ext not in ('.png','.jpg','.jpeg'):
+#        return 'File extension not allowed.'
+#
+#    save_path = '/tmp' #get_save_path_for_category(category)
+#    upload.save(save_path) # appends upload.filename automatically
 
 
 @telegram.get('/image/emoticon/<icon:path>')
@@ -203,10 +221,12 @@ def image_emoticon(icon):
     print(icon)
     return static_file(icon + '.png', EMOTICON_ROOT)
 
+
 @telegram.get('/image/graphic/<icon:path>')
 def image_graphic(icon):
     print(icon)
     return static_file(icon + '.png', GRAPHIC_ROOT)
+
 
 debug(True)
 server = WSGIServer(('192.168.1.106', 8080), telegram, handler_class=WebSocketHandler)
