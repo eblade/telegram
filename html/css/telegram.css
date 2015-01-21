@@ -161,14 +161,20 @@ div#messages {
     background-color: #dddddd;
     width: 100%;
     min-height: 100px;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 
 div.message {
-    margin: 5px;
+    margin: 8px;
     font-size: 16pt;
     background-color: white;
     padding: 3px;
     border: 1px solid #aaa;
+}
+
+div.from_me {
+    background-color: #ddffee;
 }
 
 div#tools {
@@ -180,11 +186,16 @@ input#receiver_textbox {
     font-size: 20pt;
     background-color: #eeeeee;
     width: 100%;
+    padding-left: 10px;
 }
 
+span.address {
+    font-size: 12pt;
+}
 
-span.sender {
+span.person {
     color: blue;
+    cursor: pointer;
 }
 
 input#message_textbox {

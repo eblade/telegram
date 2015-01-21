@@ -102,36 +102,37 @@ def socket():
     while True:
         try:
             message = wsock.receive()
-            print(message)
-            message = json.loads(message)
-            address = message.get('request')
-            if address == 'new':
-                while True:
-                    next_message = post_office.fetch(username)
-                    if next_message is None:
-                        wsock.send('{"status": 204}')
-                        break
-                    else:
-                        headers, body = next_message
-                        wsock.send(json.dumps({
-                            'status': 200,
-                            'request': 'new',
-                            'headers': headers,
-                            'body': body
-                        }))
+            if message is not None:
+                print("Message: " + message)
+                message = json.loads(message)
+                address = message.get('request')
+                if address == 'new':
+                    while True:
+                        next_message = post_office.fetch(username)
+                        if next_message is None:
+                            wsock.send('{"status": 204}')
+                            break
+                        else:
+                            headers, body = next_message
+                            wsock.send(json.dumps({
+                                'status': 200,
+                                'request': 'new',
+                                'headers': headers,
+                                'body': body
+                            }))
 
-            elif address == 'proxy':
-                headers = message.get('headers', {})
-                body = message.get('body', '')
-                headers['X-Telegram-From'] = username
-                try:
-                    post_office.post_local(headers, body)
-                    wsock.send(json.dumps({'status': 201,}))
-                except:
-                    wsock.send(json.dumps({'status': 404,}))
+                elif address == 'proxy':
+                    headers = message.get('headers', {})
+                    body = message.get('body', '')
+                    headers['X-Telegram-From'] = username
+                    try:
+                        post_office.post_local(headers, body)
+                        wsock.send(json.dumps({'status': 201,}))
+                    except:
+                        wsock.send(json.dumps({'status': 404,}))
 
-            else:
-                wsock.send('{"status": 404}')
+                else:
+                    wsock.send('{"status": 404}')
         except WebSocketError:
             break
 
@@ -218,13 +219,11 @@ def css(path):
 
 @telegram.get('/image/emoticon/<icon:path>')
 def image_emoticon(icon):
-    print(icon)
     return static_file(icon + '.png', EMOTICON_ROOT)
 
 
 @telegram.get('/image/graphic/<icon:path>')
 def image_graphic(icon):
-    print(icon)
     return static_file(icon + '.png', GRAPHIC_ROOT)
 
 
