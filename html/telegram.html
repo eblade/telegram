@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Telegram Web Client</title>
+    <meta name="description" content="Telegram Web Client">
+    <meta name="author" content="Johan Egneblad">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <script src="//code.jquery.com/jquery-2.1.3.min.js"></script>
+    <style>
+        /* http://meyerweb.com/eric/tools/css/reset/
+           v2.0b1 | 201101
+           NOTE: WORK IN PROGRESS
+           USE WITH CAUTION AND TEST WITH ABANDON */
+
+        html, body, div, span, applet, object, iframe,
+        h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+        a, abbr, acronym, address, big, cite, code,
+        del, dfn, em, img, ins, kbd, q, s, samp,
+        small, strike, strong, sub, sup, tt, var,
+        b, u, i, center,
+        dl, dt, dd, ol, ul, li,
+        fieldset, form, label, legend,
+        table, caption, tbody, tfoot, thead, tr, th, td,
+        article, aside, canvas, details, figcaption, figure,
+        footer, header, hgroup, menu, nav, section, summary,
+        time, mark, audio, video {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            outline: 0;
+            font-size: 100%;
+            font: inherit;
+            vertical-align: baseline;
+        }
+        /* HTML5 display-role reset for older browsers */
+        article, aside, details, figcaption, figure,
+        footer, header, hgroup, menu, nav, section {
+            display: block;
+        }
+        body {
+            line-height: 1;
+        }
+        ol, ul {
+            list-style: none;
+        }
+        blockquote, q {
+            quotes: none;
+        }
+        blockquote:before, blockquote:after,
+        q:before, q:after {
+            content: '';
+            content: none;
+        }
+
+        /* remember to highlight inserts somehow! */
+        ins {
+            text-decoration: none;
+        }
+        del {
+            text-decoration: line-through;
+        }
+
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        /*begin our styles*/
+
+        body {
+            font: 16px/1.4em 'PT Sans', sans-serif;;
+            color: #1c1c1c;
+        }
+
+        p,
+        ul {
+            margin: 0 0 1.5em;
+        }
+
+        ul {
+            list-style: disc;
+            padding: 0 0 0 20px;
+        }
+
+        a {
+            color: #1D745A;
+        }
+
+        h1 {
+
+        }
+
+        h2 {
+            font-family: 'PT Serif', serif;
+            font-size: 32px;
+            line-height: 1.4em;
+            margin: 0 0 .4em;
+            font-weight: bold;
+        }
+
+        /*layout*/
+
+        .wrapper {
+        }
+
+        article {
+            border-bottom: 1px solid #d8d8d8;
+            padding: 10px 20px 0 20px;
+            margin: 10px 0;
+        }
+
+        /*header*/
+
+        header {
+            background: #1c1c1c;
+            padding: 15px 20px;
+        }
+
+        /*shorter clearfix http://nicolasgallagher.com/micro-clearfix-hack/*/
+        header:before,
+        header:after {
+            content:"";
+            display:table;
+        }
+
+        header:after {
+            clear:both;
+        }
+
+        /* For IE 6/7 (trigger hasLayout) */
+        header {
+            zoom:1;
+        }
+
+        h1.logo a {
+            color: #d8d8d8;
+            text-decoration: none;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 20px;
+            line-height: 22px;
+            float: left;
+            letter-spacing: 0.2em;
+        }
+
+        a.to_nav {
+            float: right;
+            color: #fff;
+            background: #4e4e4e;
+            text-decoration: none;
+            padding: 0 10px;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 22px;
+            height: 22px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            -webkit-border-radius: 2px;
+            -moz-border-radius: 2px;
+            border-radius: 2px;
+        }
+
+        a.to_nav:hover,
+        a.to_nav:focus {
+            color: #1c1c1c;
+            background: #ccc;
+        }
+
+        /*navigation*/
+
+        #primary_nav ul {
+            list-style: none;
+            background: #1c1c1c;
+            padding: 5px 0;
+        }
+
+        #primary_nav li a {
+            display: block;
+            padding: 0 20px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            letter-spacing: 0.1em;
+            line-height: 2em;
+            height: 2em;
+            border-bottom: 1px solid #383838;
+        }
+
+        #primary_nav li:last-child a {
+            border-bottom: none;
+        }
+
+        #primary_nav li a:hover,
+        #primary_nav li a:focus {
+            color: #1c1c1c;
+            background: #ccc;
+        }
+        #primary_nav li input[type=text],
+        #primary_nav li input[type=password] {
+            background: #1c1c1c;
+            color: #ccc;
+            border: none;
+            width: 80px;
+            border: 1px solid #444;
+            margin: 2px;
+        }
+
+        /*footer*/
+
+        footer {
+            font-family: 'PT Serif', serif;
+            font-style: italic;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        /* messages */
+
+        div.message {
+            margin: 5px;
+            font-size: 16pt;
+        }
+
+        span.sender {
+            color: blue;
+        }
+
+        /*media queries*/
+
+        @media only screen and (min-width: 768px) {
+
+            a.to_nav {
+                display: none;
+            }
+
+            .wrapper {
+                position: relative;
+                /*width: 768px;*/
+                margin: auto;
+            }
+
+            #primary_nav {
+                position: absolute;
+                top: 5px;
+                right: 10px;
+                background: none;
+            }
+
+            #primary_nav li {
+                display: inline;
+            }
+
+            #primary_nav li a {
+                float: left;
+                border: none;
+                padding: 0 10px;
+                -webkit-border-radius: 2px;
+                -moz-border-radius: 2px;
+                border-radius: 2px;
+            }
+
+        }
+    </style>
+</head>
+<body id="home">
+    <div class="wrapper">
+
+        <header>
+
+            <h1 class="logo"><a href="">Telegram</a></h1>
+
+            <a class="to_nav" href="#primary_nav">Menu</a>
+
+        </header>
+
+        <div id="message"></div>
+
+        <input type="text" name="sender_textbox" id="sender_textbox" />
+        <input type="text" name="message_textbox" id="message_textbox" onkeypress="handle_messagebox(event)" />
+
+        <footer>
+
+            <p>Telegram Web Client by Johan Egneblad</p>
+
+        </footer>
+
+    </div><!--end wrapper-->
+
+    <nav id="primary_nav">
+        <ul>
+            <li>
+                Login:
+                <input type="text" name="username" id="username" onkeypress="handle_login(event)"/>
+                <input type="password" name="password" id="password" onkeypress="handle_login(event)"/>
+            </li>
+        </ul>
+    </nav><!--end primary_nav-->
+
+    <script>
+        function handle_login(e) {
+            var key=e.keyCode || e.which;
+            if (key === 13) {
+                var username = document.getElementById("username").value;
+                var password = document.getElementById("password").value;
+
+                $.ajax
+                ({
+                    type: "POST",
+                    url: 'auth',
+                    dataType: 'json',
+                    data: JSON.stringify({ "username": username, "password": password }),
+                    contentType : 'application/json',
+                    success: function () { alert("Login ok"); }
+                });
+            }
+
+            return false;
+        }
+
+        function handle_messagebox(e) {
+            var key=e.keyCode || e.which;
+            if (key === 13) {
+                var sender = document.getElementById("sender_textbox").value;
+                var message_box = document.getElementById("message_textbox");
+                var username = document.getElementById("username").value;
+
+                $.ajax
+                ({
+                    type: "POST",
+                    url: 'proxy',
+                    headers: {
+                        "X-Telegram-To": sender,
+                        "X-Telegram-From": username,
+                    },
+                    data: message_box.value,
+                    contentType : 'text/plain',
+                    success: function () {}
+                });
+            }
+
+            return false;
+        }
+        function handle_fetch() {
+            $.ajax
+            ({
+                type: "GET",
+                url: "new",
+                success: function (data, textStatus, request) {
+                    if (data) {
+                        var
+                            messages = document.getElementById("messages"),
+                            newMessage = document.createElement('div'),
+                            sender = request.getResponseHeader('x-telegram-from');
+                        newMessage.innerHTML = '<span class="sender">' + sender + '</span>: ' + data;
+                        newMessage.className += " message";
+                        message.appendChild(newMessage);
+                    }
+                },
+                error: function (r) { alert("No message in queue"); }
+            });
+
+            setTimeout(handle_fetch, 1000);
+        }
+
+        handle_fetch();
+    </script>
+</body>
+</html>
