@@ -16,6 +16,11 @@ ws.onmessage = function (evt) {
     }
 };
 
+window.onbeforeunload = function() {
+    ws.onclose = function () {}; // disable onclose handler first
+    ws.close()
+};
+
 function handle_messagebox(e) {
     var
         message_box = e.target,
@@ -62,11 +67,6 @@ function print_message(sender, receiver, message) {
     var
         messages = document.getElementById("messages"),
         newMessage = document.createElement('div');
-
-    message = message.replace(/ \.([A-Za-z0-9_]+) /g, '<img src="image/emoticon/$1" alt="$1" />');
-    message = message.replace(/^\.([A-Za-z0-9_]+) /g, '<img src="image/emoticon/$1" alt="$1" />');
-    message = message.replace(/^\.([A-Za-z0-9_]+)$/g, '<img src="image/emoticon/$1" alt="$1" />');
-    message = message.replace(/ \.([A-Za-z0-9_]+)$/g, '<img src="image/emoticon/$1" alt="$1" />');
 
     newMessage.className = "message";
     if (sender === null) {

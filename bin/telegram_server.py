@@ -1,4 +1,5 @@
 from __future__ import print_function
+import argparse
 import os
 from gevent import monkey; monkey.patch_all()
 from telegram.post.office import PostOffice
@@ -10,19 +11,17 @@ from geventwebsocket import WebSocketError
 from geventwebsocket.handler import WebSocketHandler
 import json
 
+parser = argparse.ArgumentParser('telegram-client')
+parser.add_argument('--config-dir', '-c', default='~/.telegram', help='config file location (default ~/.telegram)')
+args = parser.parse_args()
+
+config_dir = os.path.expanduser(args.config_dir)
+
 telegram = Bottle()
 
-internal_auth = InternalAuth()
-internal_auth.add_user('johan', 'johan')
-internal_auth.add_user('jia', 'jia')
-internal_auth.add_user('b', 'b')
-
+internal_auth = InternalAuth(config_dir)
 sessions = SessionHandler()
-
-post_office = PostOffice('localhost')
-post_office.create_post_box('johan')
-post_office.create_post_box('jia')
-post_office.create_post_box('b')
+post_office = PostOffice(config_dir)
 
 MEDIA_ROOT='/home/johan/git/telegram/media'
 EMOTICON_ROOT = os.path.join(MEDIA_ROOT, 'emoticon')
@@ -126,7 +125,7 @@ def socket():
                     body = message.get('body', '')
                     headers['X-Telegram-From'] = username
                     try:
-                        post_office.post_local(headers, body)
+                        post_office.post(headers, body, foreign=False)
                         wsock.send(json.dumps({'status': 201,}))
                     except:
                         wsock.send(json.dumps({'status': 404,}))
@@ -134,6 +133,7 @@ def socket():
                 else:
                     wsock.send('{"status": 404}')
         except WebSocketError:
+            print("WebSocketError")
             break
 
 
@@ -144,7 +144,7 @@ def proxy():
         abort(401, "Invalid token")
     headers = dict(request.headers)
     headers['X-Telegram-From'] = username
-    post_office.post_local(headers, request.body)
+    post_office.post(headers, request.body, foreign=False)
     return HTTPResponse(status=201)
 
 
@@ -229,4 +229,5 @@ def image_graphic(icon):
 
 debug(True)
 server = WSGIServer(('192.168.1.106', 8080), telegram, handler_class=WebSocketHandler)
+print("Starting web server.")
 server.serve_forever()
