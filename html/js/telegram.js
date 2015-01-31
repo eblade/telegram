@@ -15,11 +15,33 @@ ws.onmessage = function (evt) {
         print_message(sender, receiver, body);
     }
 };
+ws.onclose = function (evt) {
+    ws.send('{"request":"close"}');
+};
+
+function reconnect_if_needed() {
+    if (ws.readyState == 0 || ws.readyState == 1) {
+        return;
+    } else {
+        ws = new WebSocket("ws://" + document.location.host + "/socket");
+    }
+};
 
 window.onbeforeunload = function() {
+    ws.send('{"request":"close"}');
     ws.onclose = function () {}; // disable onclose handler first
     ws.close()
 };
+
+function handle_logout(e) {
+    ws.send('{"request": "close"}');
+    ws.onclose = function () {}; // disable onclose handler first
+    ws.close();
+
+    document.location = 'logout';
+
+    return false;
+}
 
 function handle_messagebox(e) {
     var
@@ -31,10 +53,13 @@ function handle_messagebox(e) {
             receiver = document.getElementById("receiver_textbox").value,
             message = message_box.value,
             matches = message.match(/^@([A-Za-z0-9_\.]+)$/);
-
-        if (matches !== null && matches.length == 2) {
+        
+        if (message == '') {
+            return false;
+        } else if (matches !== null && matches.length == 2) {
             change_receiver(matches[1]);
         } else {
+            reconnect_if_needed();
             ws.send(JSON.stringify({
                 request: "proxy",
                 headers: {

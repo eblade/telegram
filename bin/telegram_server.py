@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import print_function
 import argparse
 import os
@@ -47,7 +49,6 @@ def auth():
 
     token = _auth(auth_module, username, password)
     return HTTPResponse(status=200, headers={'Set-Cookie': sessions.get_cookie_header(token)})
-
 
 def _auth(auth_module, username, password):
     if auth_module == 'internal':
@@ -124,11 +125,15 @@ def socket():
                     headers = message.get('headers', {})
                     body = message.get('body', '')
                     headers['X-Telegram-From'] = username
-                    try:
-                        post_office.post(headers, body, foreign=False)
-                        wsock.send(json.dumps({'status': 201,}))
-                    except:
-                        wsock.send(json.dumps({'status': 404,}))
+                    #try:
+                    post_office.post(headers, body, foreign=False)
+                    wsock.send(json.dumps({'status': 201,}))
+                    #except:
+                    #    wsock.send(json.dumps({'status': 404,}))
+
+                elif address == 'close':
+                    wsock.close()
+                    break
 
                 else:
                     wsock.send('{"status": 404}')
@@ -156,14 +161,37 @@ def send():
 
 @telegram.get('/key')
 def key():
-    pass
+    """
+    Returns the private key for the logged in user.
+    """
+    username = sessions.validate(request.cookies.get('auth-token'))
+    if username is None:
+        abort(401, "Invalid token")
+    
+    key = post_office.get_private_key(username)
+    
+    if key is None:
+        abort(404, "User has no key")
+    else:
+        return HTTPResponse(status=200, body=key)
 
 
-@telegram.get('/key/<user>')
-def key_for_user(user):
-    pass
+@telegram.get('/key/<username>')
+def key_for_user(username):
+    """
+    Returns the public key for any given user.
+
+    :param unicode user: The username
+    """
+    key = post_office.get_public_key(username)
+    
+    if key is None:
+        abort(404, "User has no key")
+    else:
+        return HTTPResponse(status=200, body=key)
 
 
+@telegram.get('/')
 @telegram.get('/web')
 def web():
     username = sessions.validate(request.cookies.get('auth-token'))
@@ -189,6 +217,11 @@ def login():
         'Set-Cookie': sessions.get_cookie_header(token),
         'Location': '/web',
     })
+
+@telegram.get('/logout')
+def logout():
+    sessions.kill(request.cookies.get('auth-token'))
+    redirect('/login')
 
 @telegram.get('/js/<path:path>')
 def js(path):
@@ -228,6 +261,6 @@ def image_graphic(icon):
 
 
 debug(True)
-server = WSGIServer(('192.168.1.106', 8080), telegram, handler_class=WebSocketHandler)
+server = WSGIServer(('', 8080), telegram, handler_class=WebSocketHandler)
 print("Starting web server.")
 server.serve_forever()

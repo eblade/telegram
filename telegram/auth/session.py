@@ -34,3 +34,10 @@ class SessionHandler(object):
             return user
         except KeyError:
             return None
+
+    def kill(self, token):
+        try:
+            del self._sessions[token]
+        except KeyError:
+            pass
+        

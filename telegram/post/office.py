@@ -4,8 +4,9 @@ import os
 from gevent import monkey; monkey.patch_all()
 from gevent.pool import Pool
 from gevent.queue import Queue, Empty
-from telegram.auth.sign import DummyVerifier
-
+from telegram.auth.sign import RSAVerifier, RSASigner
+import requests
+from requests.compat import urlunparse
 
 
 
@@ -14,8 +15,9 @@ class PostOffice(object):
         """ @type: list of [str] """
         self._inbox = {}
         """ @type: dict of [str, gevent.queue.Queue] """
-        self._verifier_pool = Pool(64)
-        self._verifier = DummyVerifier()
+        self._worker_pool = Pool(64)
+        self._verifier = RSAVerifier(self.get_public_key)
+        self._signer = RSASigner(self.get_private_key)
         self._listeners = {}
         self.domain = 'localhost'
         self.users = {}
@@ -42,9 +44,42 @@ class PostOffice(object):
         """
         Create a postbox for a user.
 
-        :param str username:
+        :param str username: The username of the post box owner
         """
         self._inbox[username] = Queue()
+
+    def get_public_key(self, username):
+        """
+        Get a public key for a user, local or remote.
+
+        :param unicode username: The user to get the public key for "username[@domain]"
+        :rtype: unicode The key PEM/PER encoded as a string, importable by an RSA object
+        """
+        return self.get_key(username, 'public')
+
+    def get_private_key(self, username):
+        """
+        Get a private key for a user, local or remote.
+
+        :param unicode username: The user to get the private key for "username[@domain]"
+        :rtype: unicode The key PEM/PER encoded as a string, importable by an RSA object
+        """
+        return self.get_key(username, 'private')
+
+    def get_key(self, username, side):
+        username, domain = _split_user(username, self.domain)
+
+        if domain == self.domain:
+            user = self.users.get(username, {})
+            if side == 'public':
+                return user.get('public_key')
+            elif side == 'private':
+                return user.get('private_key')
+        elif side == 'public':
+            url = urlunparse(('https://', domain, '/key/' + username, '', ''))
+            response = requests.get(url)
+            if response.status_code == 200:
+                return response.body
 
     def listen(self, username, callback):
         """
@@ -68,8 +103,7 @@ class PostOffice(object):
         :param unicode body: Message Body
         :param bool foreign: True if this message comes from the outside, False otherwise
         """
-        text = body.read()
-        self._verifier_pool.spawn(self._sort, _clean_headers(headers), text, foreign=foreign)
+        self._worker_pool.spawn(self._sort, _clean_headers(headers), body, foreign=False)
 
     def fetch(self, username):
         """
@@ -101,27 +135,38 @@ class PostOffice(object):
 
         assert sender is not None, 'Missing header x-telegram-from'
         assert receiver is not None, 'Missing header x-telegram-to'
-        assert content_type.startswith('text/plain'), 'Unsupported content-type "%s"' % str(content_type)
+        assert content_type.startswith('text/plain'),\
+            'Unsupported content-type "%s"' % str(content_type)
 
-        if foreign:
+        if foreign:  # the message comes from another server
             sign_method = headers.get('x-telegram-sign-method', 'RSA')
             sign = headers.get('x-telegram-sign')
             assert sign_method == 'RSA', 'Unsupported signing method "%s"' % str(sign_method)
             assert sign is not None, 'Missing header x-telegram-sign'
             assert '@' in receiver
-            username, domain = receiver.split('@')
-            assert self._verifier.verify(sender, receiver, body), 'Unable to verify message'
-        else:
-            if '@' in receiver:
-                username, domain = receiver.split('@')
-            else:
-                username, domain = receiver, self.domain
+            assert self._verifier.verify(sender, sign, body), 'Unable to verify message'
 
-        assert domain == self.domain, 'This domain is not handled by this server'
-        assert username in self._inbox.keys(), 'There is no such user or group on this server'
+        receiver_username, receiver_domain = _split_user(receiver, self.domain)
+        sender_username, sender_domain = _split_user(sender, self.domain)
+
+        print(u'Sorting %s@%s --> %s@%s' % (sender_username, sender_domain,
+                                            receiver_username, receiver_domain))
+
+        if receiver_domain == self.domain: # the message should go here
+            self._deliver_inbound(receiver_username, headers, body)
+        else: # the message is outbound
+            self._deliver_outbound(sender_username, receiver_username,receiver_domain,
+                                   headers, body)
+
+        print('Sorting done')
+
+    def _deliver_inbound(self, username, headers, body):
+        print('Inbound message to %s.' % username)
+        assert username in self._inbox.keys(),\
+            'There is no such user or group on this server'
 
         deliveries = 0
-        for listener in self._listeners.get(username):
+        for listener in self._listeners.get(username, []):
             try:
                 listener(headers, body)
                 deliveries += 1
@@ -130,6 +175,26 @@ class PostOffice(object):
 
         if deliveries == 0:
             self._inbox[username].put((headers, body))
+
+    def _deliver_outbound(self, sender_username, receiver_username, receiver_domain, 
+                          headers, body):
+        print('Outbound message to %s.' % (receiver_username, receiver_domain))
+        assert sender_username in self.users.keys(),\
+            'There is no such user or group on this server (sender %s unknown)'\
+            % sender_username
+
+        sign = self._signer.sign(sender_username, body)
+        assert sign is not None, 'Signing failed!'
+
+        headers['x-telegram-sign-method'] = 'RSA'
+        headers['x-telegram-sign'] = sign
+        headers['x-telegram-from'] = u'%s@%s' % (sender_username, self.domain)
+
+        url = urlunparse(('https://', domain, '/send', '', ''))
+        response = requests.post(url, headers=headers, data=body)
+        if response.status_code != 201:
+            print(response.body)
+
 
 
 def _clean_headers(headers):
@@ -153,3 +218,10 @@ def _clean_body(body):
             out += c
 
     return out
+
+def _split_user(username, default_domain):
+    if '@' in username:
+        return username.split('@', 1)
+    else:
+        return username, default_domain
+

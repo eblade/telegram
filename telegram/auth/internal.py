@@ -20,7 +20,7 @@ class InternalAuth(object):
             for l in f.readlines():
                 user, password = l.strip().split(':', 1)
                 self._users[user] = password
-                print("Added user %s:%s" % (user, password))
+                print("Added internal authentication for user %s." % user)
 
     def add_user(self, username, password):
         if username in self._users:
