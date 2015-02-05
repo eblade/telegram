@@ -29,6 +29,8 @@ class SessionHandler(object):
         #return u'auth-token=%s; Expires=%s; Secure' % (token, expiry.strftime('%a, %d-%b-%Y %H:%M:%S %Z'))
 
     def validate(self, token):
+        if token is None:
+            return None
         try:
             (user, expiry) = self._sessions[token]
             return user

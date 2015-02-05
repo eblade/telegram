@@ -8,15 +8,17 @@ import requests
 
 
 parser = argparse.ArgumentParser('telegram-client')
-parser.add_argument('--config-file', '-f', default='~/.telegram', help='config file location (default ~/.telegram)')
+parser.add_argument('--config-file', '-f', default='~/.telegram/client.yaml', help='config file location (default ~/.telegram/client.yaml)')
 parser.add_argument('to', help='whom to send to')
 parser.add_argument('message', help='message to send')
+parser.add_argument('--iterate', '-i', default=-1, type=int, help='send the message X times, and append the order number')
 args = parser.parse_args()
 
 
 config = yaml.load(open(os.path.expanduser(args.config_file), 'r'))
 domain = config.get('domain')
 username = config.get('username')
+password = config.get('password')
 target = args.to
 session = requests.Session()
 
@@ -41,5 +43,10 @@ def send(message):
     print(response.headers)
     print(response.text)
 
-auth(raw_input("Password for %s@%s:" % (username, domain)))
-send(args.message)
+auth(password or raw_input("Password for %s@%s:" % (username, domain)))
+
+if args.iterate == -1:
+    send(args.message)
+else:
+    for x in range(args.iterate):
+        send('%s (%i)' % (args.message, x+1))

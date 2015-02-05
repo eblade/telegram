@@ -7,7 +7,7 @@ from gevent import monkey; monkey.patch_all()
 from telegram.post.office import PostOffice
 from telegram.auth.session import SessionHandler
 from telegram.auth.internal import InternalAuth
-from bottle import debug, request, Bottle, HTTPError, HTTPResponse, static_file, abort, redirect
+from bottle import debug, request, response, Bottle, HTTPError, HTTPResponse, static_file, abort, redirect
 from gevent.pywsgi import WSGIServer
 from geventwebsocket import WebSocketError
 from geventwebsocket.handler import WebSocketHandler
@@ -38,6 +38,7 @@ GRAPHIC_ROOT = os.path.join(MEDIA_ROOT, 'graphic')
 #   "password": "PASSWORD"
 # }
 @telegram.post('/auth')
+@telegram.post('/telegram/auth')
 def auth():
     auth_data = request.json
     if auth_data is None:
@@ -48,7 +49,13 @@ def auth():
     password = auth_data.get('password')
 
     token = _auth(auth_module, username, password)
-    return HTTPResponse(status=200, headers={'Set-Cookie': sessions.get_cookie_header(token)})
+
+    if request.headers.get('Accepts', '').startswith('application/json'):
+        response.set_cookie('token', token)
+        print({ "result": "ok", "token": token })
+        return { "result": "ok", "token": token }
+    else:
+        return HTTPResponse(status=200, headers={'Set-Cookie': sessions.get_cookie_header(token)})
 
 def _auth(auth_module, username, password):
     if auth_module == 'internal':
@@ -64,8 +71,9 @@ def _auth(auth_module, username, password):
 
 
 @telegram.get('/new')
+@telegram.get('/telegram/new')
 def new():
-    username = sessions.validate(request.cookies['auth-token'])
+    username = sessions.validate(request.cookies.get('auth-token'))
     if username is None:
         return HTTPError(401, "Invalid token")
 
@@ -79,8 +87,9 @@ def new():
 
 
 @telegram.route('/socket')
+@telegram.route('/telegram/socket')
 def socket():
-    username = sessions.validate(request.cookies['auth-token'])
+    username = sessions.validate(request.cookies.get('auth-token'))
     print('User: %s' % username)
     if username is None:
         abort(401, "Invalid token")
@@ -143,6 +152,7 @@ def socket():
 
 
 @telegram.post('/proxy')
+@telegram.post('/telegram/proxy')
 def proxy():
     username = sessions.validate(request.cookies.get('auth-token'))
     if username is None:
@@ -154,6 +164,7 @@ def proxy():
 
 
 @telegram.post('/send')
+@telegram.post('/telegram/send')
 def send():
     post_office.post(request.headers, request.body)
     return HTTPResponse(status=201)
@@ -219,6 +230,7 @@ def login():
     })
 
 @telegram.get('/logout')
+@telegram.get('/telegram/logout')
 def logout():
     sessions.kill(request.cookies.get('auth-token'))
     redirect('/login')
