@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tkmenu>
+<tkmenu>
+    <menu label="_File">
+        <command
+            label="_Settings"
+            accelerator="F2"
+            command="@File:Settings"
+        />
+        <command
+            label="_Quit"
+            accelerator="Ctrl+Q"
+            command="@quit"
+        />
+    </menu>
+</tkmenu>

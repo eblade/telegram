@@ -1,0 +1,45 @@
+#:kivy 1.0
+
+<ChatScreen>:
+    box_messages: box_messages
+    txt_to: txt_to
+    txt_message: txt_message
+    BoxLayout:
+        orientation: 'vertical'
+        Button:
+            on_press: app.open_settings()
+            text: "Settings"
+            height: 30
+            size_hint_y: None
+        ListView:
+            id: box_messages
+            adapter: app.adapter
+            pos: 0, 0
+            canvas:
+                Color:
+                    rgba: 1, 1, 1, 0.2
+                Rectangle:
+                    size: self.parent.size
+        Label:
+            id: txt_to
+            multiline: False
+            text: 'jia'
+            height: 30
+            size_hint_y: None
+        TextInput:
+            id: txt_message
+            multiline: False
+            focus: True
+            height: 30
+            size_hint_y: None
+
+
+<ListItemMessage>:
+    size_hint_y: None
+    text_size: self.width, None
+    height: self.texture_size[1]
+    markup: True
+    halign: 'left'
+
+
+#vim:ft=yaml:ai:sw=4:ts=4:et

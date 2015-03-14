@@ -70,6 +70,16 @@ def _auth(auth_module, username, password):
         abort(401, u'Authentication failed: Wrong username or password.')
 
 
+@telegram.get('/auth/check')
+@telegram.get('/telegram/auth/check')
+def auth_check():
+    username = sessions.validate(request.cookies.get('auth-token'))
+    print('Checked ' + str(request.cookies.get('auth-token')) + ' -> ' + str(username))
+    if username is None:
+        abort(401, "Invalid token")
+    return HTTPResponse(status=200)
+
+
 @telegram.get('/new')
 @telegram.get('/telegram/new')
 def new():
@@ -80,9 +90,12 @@ def new():
     next_message = post_office.fetch(username)
 
     if next_message is None:
+        print("No next message")
         return HTTPResponse(status=204)
     else:
         headers, body = next_message
+        print(headers)
+        print(body)
         return HTTPResponse(body, status=200, headers=headers)
 
 

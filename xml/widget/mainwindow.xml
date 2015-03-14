@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tkwidget>
+<tkwidget>
+    <ttkframe
+        id="frame_messaging"
+        layout="pack"
+        resizable="yes"
+    >
+        <text 
+            id="text_messages"
+            name="t_messages"
+            layout="pack"
+            resizable="yes"
+            wrap="word"
+            state="disabled"
+        />
+        <text
+            id="text_message"
+            name="t_message"
+            layout="pack"
+            height="3"
+            resizable="yes"
+            wrap="word"
+        />
+        <entry
+            id="text_password"
+            name="t_password"
+            show="*"
+            layout="pack"
+            height="1"
+            resizable="yes"
+        />
+    </ttkframe>
+    <ttklabelframe
+        id="frame_settings"
+        text="Connection"
+        layout="pack"
+        resizable="yes"
+    >
+        <ttklabel
+            text="Domain"
+            layout="grid"
+            layout_options="row=0, column=0"
+            resizable="no"
+        />
+        <ttklabel
+            text="Username"
+            layout="grid"
+            layout_options="row=1, column=0, padx=5"
+            resizable="no"
+        />
+        <ttklabel
+            text="Mode"
+            layout="grid"
+            layout_options="row=2, column=0, padx=5"
+            resizable="no"
+        />
+        <ttkentry
+            id="connection_domain"
+            layout="grid"
+            layout_options="row=0, column=1"
+            resizable="no"
+        />
+        <ttkentry
+            id="connection_username"
+            layout="grid"
+            layout_options="row=1, column=1"
+            resizable="no"
+        />
+        <ttkcombobox
+            id="connection_mode"
+            layout="grid"
+            layout_options="row=2, column=1"
+            resizable="no"
+        />
+    </ttklabelframe>
+</tkwidget>

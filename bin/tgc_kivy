@@ -1,0 +1,182 @@
+#!usr/bin/env python
+
+import kivy
+kivy.require('1.0.7')
+
+from kivy.app import App
+from kivy.clock import Clock
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.popup import Popup
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.label import Label
+from kivy.uix.listview import ListItemLabel
+from kivy.adapters.listadapter import ListAdapter
+from kivy.properties import ObjectProperty, ListProperty
+
+from kivy.logger import Logger
+
+from telegram.client import TelegramClient, PasswordRequired, LoginFailed
+from telegram.client.uix.login import LoginPopup
+from telegram.post import Message
+
+# From gui/telegram.kv
+class ChatScreen(BoxLayout):
+    pass
+
+
+# From gui/telegram.kv
+class ListItemMessage(ListItemLabel):
+    pass
+
+
+def message_args_converter(row_index, message):
+    s_from = '[i][color=999999]From[/color] [color=0088ff][ref=from]' +\
+             message.telegram_from + '[/ref][/color]'
+    s_to = '[color=999999]to[/color] [color=0088ff][ref=to]' +\
+           message.telegram_to + '[/ref][/color][/i]'
+    text = s_from + ' ' + s_to + '\n' + message.content
+
+    def on_ref(instance, ref):
+        if ref == 'from':
+            new_to = message.telegram_from
+        elif ref == 'to':
+            new_to = message.telegram_to
+        else:
+            return
+        TelegramApp.get_running_app().root.txt_to.text = new_to
+
+    return {
+        'text': text,
+        'on_ref_press': on_ref,
+    }
+
+
+# Main application
+class TelegramApp(App):
+    kv_directory = 'gui'
+    client = ObjectProperty()
+    adapter = ObjectProperty()
+    messages = ListProperty()
+
+    def build(self):
+        config = self.config
+
+        self.client = TelegramClient()
+        self.client.on_token_change_callback = self.on_token_change
+        self.client.on_message_callback = self.on_message
+
+        self.adapter = ListAdapter(
+            data=self.messages,
+            args_converter=message_args_converter,
+            selection_mode='none',
+            allow_empty_selection=True,
+            cls=ListItemMessage,
+        )
+
+        chat_screen = ChatScreen()
+        chat_screen.client = self.client
+        chat_screen.txt_message.bind(on_text_validate=self.on_send)
+
+        return chat_screen
+
+    def build_config(self, config):
+        config.setdefaults('connection', {
+            'domain': 'localhost',
+            'username': 'username',
+            'token': '',
+            'mode': 'http',
+        })
+
+    def build_settings(self, settings):
+        d = """[
+            { "type": "string", "title": "Username", "desc": "Your username",
+              "section": "connection", "key": "username" },
+            { "type": "string", "title": "Domain", "desc": "Your personal chat server",
+              "section": "connection", "key": "domain" },
+            { "type": "options", "title": "Mode", "desc": "Communication mode",
+              "section": "connection", "key": "mode",
+              "options": ["http", "ws"] }]"""
+        settings.add_json_panel('Telegram Client', self.config, data=d)
+
+    def on_config_change(self, config, section, key, value):
+        if section == 'connection' and key in ('username', 'domain'):
+            self.connect()
+
+    def on_token_change(self, token):
+        print("Saving token ", token)
+        self.config.set('connection', 'token', token)
+        self.config.write()
+
+    def on_start(self):
+        Logger.info('Telegram: on_start()')
+        self.connect(token=self.config.get('connection', 'token'))
+        Logger.info('Client: Connected')
+
+        if self.config.get('connection', 'mode') == 'http':
+            Clock.schedule_interval(self.client.receive, 1)
+        elif self.config.get('connection', 'mode') == 'ws':
+            pass
+
+
+    def connect(self, token=None, password=None):
+        Logger.info('Telegram: connect()')
+        self.client.username = self.config.get('connection', 'username')
+        self.client.domain = self.config.get('connection', 'domain')
+
+        if token:
+            self.client.token = token
+
+        try:
+            self.client.auth(password=password)
+            print("Login successful")
+        except PasswordRequired:
+            self.login_with_popup()
+        except LoginFailed:
+            self.login_with_popup(incorrect=True)
+    
+    def login_with_popup(self, incorrect=False):
+        Logger.info('Telegram: login_with_popup()')
+        login = LoginPopup()
+        login.title = 'Enter %spassword for %s' % (
+            'correct ' if incorrect else '',
+            self.client.fullname
+        )
+        self.root.txt_message.disabled = True
+        self.root.txt_to.disabled = True
+        login.create_popup(self.on_login_with_popup_done)
+
+    def on_login_with_popup_done(self, password):
+        Logger.info('Telegram: login_with_popup_done()')
+        self.root.txt_message.disabled = False
+        self.root.txt_to.disabled = False
+        if password:
+            self.connect(password=password)
+            self.root.txt_message.focus = True
+
+    def on_send(self, instance):
+        Logger.info('Telegram: on_send()')
+        value = instance.text
+
+        if value.startswith('@') and ' ' not in value:
+            self.root.txt_to.text = value[1:]
+        else:
+            to = self.root.txt_to.text
+            self.client.send(to, value)
+
+        instance.text = ''
+        instance.focus = True
+
+    def on_message(self, message):
+        Logger.info('Telegram: on_message()')
+        self.adapter.data.append(message)
+        self.root.txt_message.focus = True
+        
+
+if __name__ == '__main__':
+    TelegramApp().run()
+
+
+
+#vim:ft=python:ai:sw=4:ts=4:et

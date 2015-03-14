@@ -198,7 +198,7 @@ class PostOffice(object):
 
 
 def _clean_headers(headers):
-    lower = {k.lower(): v for k, v in headers.items()}
+    lower = {str(k.lower()): str(v) for k, v in headers.items()}
     return {k: v for k, v in lower.items() if k.startswith('x-telegram-') or k == 'content-type'}
 
 

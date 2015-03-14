@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tkwidget>
+<tkwidget>
+    <ttklabelframe
+        text="Connection"
+        layout="pack"
+        resizable="yes"
+    >
+        <ttklabel
+            text="Domain"
+            layout="grid"
+            layout_options="row=0, column=0"
+            resizable="no"
+        />
+        <ttklabel
+            text="Username"
+            layout="grid"
+            layout_options="row=1, column=0, padx=5"
+            resizable="no"
+        />
+        <ttklabel
+            text="Mode"
+            layout="grid"
+            layout_options="row=2, column=0, padx=5"
+            resizable="no"
+        />
+        <ttkentry
+            id="connection_domain"
+            layout="grid"
+            layout_options="row=0, column=1"
+            resizeable="no"
+        />
+        <ttkentry
+            id="connection_username"
+            layout="grid"
+            layout_options="row=1, column=1"
+            resizeable="no"
+        />
+        <ttkcombobox
+            id="connection_mode"
+            layout="grid"
+            layout_options="row=2, column=1"
+            resizeable="no"
+        />
+    </ttklabelframe>
+</tkwidget>
